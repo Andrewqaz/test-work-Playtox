@@ -1,35 +1,41 @@
 package testwork;
 
-import org.apache.log4j.Logger;
 import testwork.controller.ImitationOfWork;
 import testwork.domain.Account;
-import testwork.service.AccountService;
+import testwork.utils.Util;
 
-import java.io.*;
 import java.util.List;
 import java.util.Properties;
 
 public class Main {
-    private static final Logger logger = Logger.getLogger(Main.class);
-
-
     public static void main(String[] args) {
-        Properties properties = new Properties();
-        try (InputStream inputStream = ImitationOfWork.class.getResourceAsStream("/property.properties")) {
-            properties.load(inputStream);
-        } catch (FileNotFoundException e) {
-            logger.error("файл свойств не найден", e);
-        } catch (IOException exception) {
-            logger.error("ошибка доступа к файлу свойств", exception);
-        }
-
+        Properties properties = Util.getProperties("/property.properties");
         int numberOfAccounts = Integer.parseInt(properties.getProperty("accounts"));
         System.out.println(numberOfAccounts);
-        AccountService accountService = new AccountService();
-        List<Account> accounts = accountService.createListOfAccounts(numberOfAccounts);
-        ImitationOfWork work = new ImitationOfWork(accounts);
-        work.working();
+        List<Account> accounts = Util.createListOfAccounts(numberOfAccounts);
+
+        int sumBefore = 0;
+        for (Account a : accounts) {
+            sumBefore = sumBefore+a.getMoney();
+        }
+
+        int amountThreads = Integer.parseInt(properties.getProperty("threads"));
+        for (int i = 0; i < amountThreads; i++) {
+            Thread thread = new Thread(new ImitationOfWork(accounts));
+            thread.start();
+        }
+
+        while (ImitationOfWork.getNumberOfOperations().get()>0){
+        }
+
         accounts.forEach(account -> System.out.println(account.getId() + " balance: " + account.getMoney()));
+
+        int sumAfter = 0;
+        for (Account a : accounts) {
+            sumAfter = sumAfter+a.getMoney();
+        }
+        System.out.println("sumBefore = "+sumBefore);
+        System.out.println("sumAfter = "+sumAfter);
     }
 }
 
